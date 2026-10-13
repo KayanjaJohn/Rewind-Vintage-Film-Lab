@@ -1,0 +1,25 @@
+{
+  "id": "./",
+  "name": "REWIND \u2014 Vintage Film Lab",
+  "short_name": "REWIND",
+  "description": "A local-first vintage film photo lab with custom presets and film textures.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#141210",
+  "theme_color": "#141210",
+  "categories": [
+    "photo",
+    "utilities",
+    "design"
+  ],
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
