@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REWIND — Vintage Film Lab</title>
+<style>
+  :root{
+    --bg:#141210; --panel:#1e1a16; --panel2:#26211b;
+    --amber:#e8a33d; --amber2:#f2c078; --cream:#f0e6d2;
+    --muted:#8a7d68; --line:#3a3226;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    background:var(--bg); color:var(--cream);
+    font-family:"Courier New", ui-monospace, monospace;
+    min-height:100vh; display:flex; flex-direction:column;
+  }
+  header{
+    display:flex; align-items:center; gap:14px;
+    padding:16px 24px; border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#1c1813,#141210);
+  }
+  .logo{
+    width:38px;height:38px;border-radius:50%;
+    border:2px solid var(--amber);
+    display:grid;place-items:center;
+    color:var(--amber);font-weight:bold;font-size:18px;
+    box-shadow:0 0 18px rgba(232,163,61,.25);
+  }
+  h1{font-size:20px;letter-spacing:4px;color:var(--amber2);}
+  h1 span{color:var(--muted);font-size:11px;letter-spacing:2px;display:block;margin-top:2px;}
+  main{flex:1;display:grid;grid-template-columns:1fr 340px;gap:0;min-height:0;}
+  @media (max-width:900px){ main{grid-template-columns:1fr;} }
+
+  /* ---------- stage ---------- */
+  #stage{
+    position:relative;display:flex;align-items:center;justify-content:center;
+    padding:28px;min-height:420px;overflow:hidden;
+    background:
+      radial-gradient(ellipse at 50% 40%, rgba(232,163,61,.05), transparent 60%),
+      var(--bg);
+  }
+  #dropzone{
+    border:2px dashed var(--line);border-radius:12px;
+    padding:60px 40px;text-align:center;color:var(--muted);
+    cursor:pointer;transition:.2s;max-width:520px;
+  }
+  #dropzone:hover, #dropzone.over{border-color:var(--amber);color:var(--amber2);background:rgba(232,163,61,.04);}
+  #dropzone .big{font-size:44px;margin-bottom:10px;}
+  #dropzone p{font-size:13px;line-height:1.7;}
+  #frame{
+    display:none;position:relative;max-width:100%;
+    border:10px solid #f4efe6; border-bottom-width:42px;
+    border-radius:4px; background:#000;
+    box-shadow:0 20px 60px rgba(0,0,0,.6), 0 0 0 1px #2a251d;
+    transform:rotate(-.6deg);
+  }
+  #frame .caption{
+    position:absolute;bottom:-34px;left:0;right:0;text-align:center;
+    color:#5c5344;font-size:12px;letter-spacing:3px;font-family:"Brush Script MT",cursive;
+  }
+  canvas#cv{display:block;max-width:100%;max-height:62vh;border-radius:2px;cursor:crosshair;}
+  #hint{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
+    color:var(--muted);font-size:11px;letter-spacing:1px;display:none;pointer-events:none;
+    background:rgba(20,18,16,.75);padding:4px 12px;border-radius:20px;border:1px solid var(--line);}
+
+  /* ---------- controls ---------- */
+  aside{
+    border-left:1px solid var(--line);background:var(--panel);
+    padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:18px;
+  }
+  .sec h2{
+    font-size:11px;letter-spacing:3px;color:var(--muted);
+    text-transform:uppercase;margin-bottom:10px;
+    border-bottom:1px solid var(--line);padding-bottom:6px;
+  }
+  .presets{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .presets button{
+    background:var(--panel2);border:1px solid var(--line);color:var(--cream);
+    font-family:inherit;font-size:12px;padding:9px 6px;cursor:pointer;border-radius:6px;
+    transition:.15s;letter-spacing:.5px;
+  }
+  .presets button:hover{border-color:var(--amber);color:var(--amber2);}
+  .presets button.active{background:var(--amber);color:#1a140c;border-color:var(--amber);font-weight:bold;}
+  .ctl{margin-bottom:12px;}
+  .ctl label{display:flex;justify-content:space-between;font-size:12px;color:var(--cream);margin-bottom:5px;}
+  .ctl label b{color:var(--amber);font-weight:normal;}
+  input[type=range]{
+    width:100%;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;
+    background:linear-gradient(90deg,var(--amber) var(--v,50%),var(--line) var(--v,50%));
+    outline:none;cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:var(--cream);border:3px solid var(--amber);box-shadow:0 0 8px rgba(232,163,61,.5);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:12px;height:12px;border-radius:50%;
+    background:var(--cream);border:3px solid var(--amber);
+  }
+  .btnrow{display:flex;gap:10px;}
+  .btn{
+    flex:1;padding:12px;border:none;border-radius:8px;cursor:pointer;
+    font-family:inherit;font-size:13px;letter-spacing:1px;font-weight:bold;transition:.15s;
+  }
+  .btn.primary{background:var(--amber);color:#1a140c;}
+  .btn.primary:hover{background:var(--amber2);}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--muted);}
+  .btn.ghost:hover{color:var(--amber2);border-color:var(--amber);}
+  footer{padding:10px 24px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;letter-spacing:1px;text-align:center;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">R</div>
+  <h1>REWIND<span>VINTAGE FILM LAB · est. 1986</span></h1>
+</header>
+
+<main>
+  <section id="stage">
+    <div id="dropzone">
+      <div class="big">🎞️</div>
+      <p><b>DROP A PHOTO HERE</b> or click to browse<br><br>
+      JPEG / PNG / WebP — processed locally, never uploaded</p>
+    </div>
+    <div id="frame">
+      <canvas id="cv"></canvas>
+      <div class="caption">— rewind film co. —</div>
+    </div>
+    <div id="hint">hold photo to see original · release to see film look</div>
+    <input type="file" id="file" accept="image/*" hidden>
+  </section>
+
+  <aside>
+    <div class="sec">
+      <h2>Film Stock Presets</h2>
+      <div class="presets">
+        <button data-p="gold" class="active">Kodak Gold '84</button>
+        <button data-p="portra">Portra '92</button>
+        <button data-p="fuzzy">Fuzzy 80s</button>
+        <button data-p="mall">Mall Glow '96</button>
+        <button data-p="slide">Expired Slide</button>
+        <button data-p="reset">Reset / Raw</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h2>Color Grade</h2>
+      <div class="ctl"><label>Warmth <b id="v-warm"></b></label>
+        <input type="range" id="s-warm" min="0" max="100" value="45"></div>
+      <div class="ctl"><label>Tint <b id="v-tint"></b></label>
+        <input type="range" id="s-tint" min="-30" max="30" value="5"></div>
+      <div class="ctl"><label>Saturation <b id="v-sat"></b></label>
+        <input type="range" id="s-sat" min="0" max="200" value="82"></div>
+      <div class="ctl"><label>Contrast <b id="v-contrast"></b></label>
+        <input type="range" id="s-contrast" min="20" max="160" value="95"></div>
+      <div class="ctl"><label>Matte / Fade <b id="v-fade"></b></label>
+        <input type="range" id="s-fade" min="0" max="100" value="18"></div>
+    </div>
+
+    <div class="sec">
+      <h2>Film Texture</h2>
+      <div class="ctl"><label>Grain <b id="v-grain"></b></label>
+        <input type="range" id="s-grain" min="0" max="100" value="38"></div>
+      <div class="ctl"><label>Vignette <b id="v-vig"></b></label>
+        <input type="range" id="s-vig" min="0" max="100" value="32"></div>
+      <div class="ctl"><label>Halation / Bloom <b id="v-hal"></b></label>
+        <input type="range" id="s-hal" min="0" max="100" value="28"></div>
+    </div>
+
+    <div class="btnrow">
+      <button class="btn ghost" id="sample">Try Sample</button>
+      <button class="btn primary" id="dl">⬇ Save Photo</button>
+    </div>
+  </aside>
+</main>
+
+<footer>no cloud · no accounts · your photos stay in your browser — REWIND v1.0</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d');
+const MAX = 1800; // cap for perf
+
+const P = {
+  gold:  {warm:45, tint:5,  sat:82,  contrast:95,  fade:18, grain:38, vig:32, hal:28},
+  portra:{warm:25, tint:-6, sat:68,  contrast:85,  fade:32, grain:24, vig:18, hal:22},
+  fuzzy: {warm:42, tint:8,  sat:95,  contrast:78,  fade:20, grain:55, vig:25, hal:62},
+  mall:  {warm:18, tint:-12,sat:58,  contrast:72,  fade:42, grain:18, vig:14, hal:38},
+  slide: {warm:30, tint:10, sat:110, contrast:115, fade:8,  grain:30, vig:40, hal:15},
+  reset: {warm:0,  tint:0,  sat:100, contrast:100, fade:0,  grain:0,  vig:0,  hal:0}
+};
+let S = {...P.gold};
+let img = null, showingOriginal = false;
+
+/* ---------- grain tile ---------- */
+const grainTile = document.createElement('canvas');
+grainTile.width = grainTile.height = 512;
+(() => {
+  const g = grainTile.getContext('2d');
+  const d = g.createImageData(512,512);
+  for (let i = 0; i < d.data.length; i += 4){
+    const v = 110 + Math.random()*90 | 0;
+    d.data[i]=d.data[i+1]=d.data[i+2]=v; d.data[i+3]=255;
+  }
+  g.putImageData(d,0,0);
+})();
+
+/* ---------- render pipeline ---------- */
+function render(){
+  if (!img) return;
+  const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+  const scale = Math.min(1, MAX / Math.max(iw, ih));
+  const w = cv.width = Math.round(iw*scale), h = cv.height = Math.round(ih*scale);
+
+  if (showingOriginal){
+    ctx.filter = 'none'; ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=1;
+    ctx.drawImage(img,0,0,w,h); return;
+  }
+
+  // 1) base grade via CSS filter engine
+  const f = [
+    `sepia(${S.warm*0.7}%)`,
+    `saturate(${S.sat}%)`,
+    `contrast(${S.contrast}%)`,
+    `brightness(${100 + S.fade*0.12}%)`
+  ];
+  if (S.tint) f.push(`hue-rotate(${S.tint}deg)`);
+  ctx.filter = f.join(' ');
+  ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=1;
+  ctx.drawImage(img,0,0,w,h);
+  ctx.filter='none';
+
+  // 2) matte lift — screen blend with warm white lifts blacks gently
+  if (S.fade > 0){
+    ctx.globalCompositeOperation='screen';
+    ctx.fillStyle = `rgba(255,240,214,${(S.fade/100*0.34).toFixed(3)})`;
+    ctx.fillRect(0,0,w,h);
+    ctx.globalCompositeOperation='source-over';
+  }
+
+  // 3) halation — extract brights, blur, screen back
+  if (S.hal > 0){
+    const t1 = document.createElement('canvas'); t1.width=w; t1.height=h;
+    const c1 = t1.getContext('2d');
+    c1.filter = 'brightness(1.55) contrast(1.6) saturate(1.4)';
+    c1.drawImage(img,0,0,w,h); c1.filter='none';
+    const t2 = document.createElement('canvas'); t2.width=w; t2.height=h;
+    const c2 = t2.getContext('2d');
+    c2.filter = `blur(${(3 + S.hal*0.18).toFixed(1)}px)`;
+    c2.drawImage(t1,0,0); c2.filter='none';
+    ctx.globalCompositeOperation='screen';
+    ctx.globalAlpha = S.hal/100*0.75;
+    ctx.drawImage(t2,0,0);
+    ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+  }
+
+  // 4) film grain
+  if (S.grain > 0){
+    const pat = ctx.createPattern(grainTile,'repeat');
+    ctx.save();
+    ctx.translate(Math.random()*512|0, Math.random()*512|0);
+    ctx.globalCompositeOperation='overlay';
+    ctx.globalAlpha = S.grain/100*0.55;
+    ctx.fillStyle = pat;
+    ctx.fillRect(-512,-512,w+1024,h+1024);
+    ctx.restore();
+    ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+  }
+
+  // 5) vignette
+  if (S.vig > 0){
+    const g = ctx.createRadialGradient(w/2,h/2, Math.min(w,h)*0.35, w/2,h/2, Math.max(w,h)*0.75);
+    g.addColorStop(0,'rgba(26,14,4,0)');
+    g.addColorStop(1,`rgba(26,14,4,${(S.vig/100*0.85).toFixed(3)})`);
+    ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+  }
+}
+
+/* ---------- controls ---------- */
+const SLIDERS = ['warm','tint','sat','contrast','fade','grain','vig','hal'];
+const IDS = {warm:'s-warm',tint:'s-tint',sat:'s-sat',contrast:'s-contrast',fade:'s-fade',grain:'s-grain',vig:'s-vig',hal:'s-hal'};
+const NAMES = {warm:'Warmth',tint:'Tint',sat:'Saturation',contrast:'Contrast',fade:'Matte/Fade',grain:'Grain',vig:'Vignette',hal:'Halation'};
+
+function syncUI(){
+  SLIDERS.forEach(k=>{
+    const el = $(IDS[k]);
+    el.value = S[k];
+    el.style.setProperty('--v', ((S[k]-el.min)/(el.max-el.min)*100)+'%');
+    $('v-'+({vig:'vig',hal:'hal'}[k]||k)).textContent = NAMES[k]+' '+S[k];
+  });
+}
+SLIDERS.forEach(k=>{
+  $(IDS[k]).addEventListener('input', e=>{
+    S[k] = +e.target.value;
+    document.querySelectorAll('.presets button').forEach(b=>b.classList.remove('active'));
+    syncUI(); render();
+  });
+});
+
+document.querySelectorAll('.presets button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    S = {...P[b.dataset.p]};
+    document.querySelectorAll('.presets button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    syncUI(); render();
+  });
+});
+
+/* ---------- load ---------- */
+function loadFile(file){
+  if (!file || !file.type.startsWith('image/')) return;
+  const url = URL.createObjectURL(file);
+  const im = new Image();
+  im.onload = ()=>{ img = im; showFrame(); URL.revokeObjectURL(url); };
+  im.src = url;
+}
+function showFrame(){
+  $('dropzone').style.display='none';
+  $('frame').style.display='block';
+  $('hint').style.display='block';
+  render();
+}
+$('dropzone').addEventListener('click', ()=> $('file').click());
+$('file').addEventListener('change', e=> loadFile(e.target.files[0]));
+const stage = $('stage');
+['dragover','dragenter'].forEach(ev=> stage.addEventListener(ev, e=>{e.preventDefault(); $('dropzone').classList.add('over');}));
+['dragleave','drop'].forEach(ev=> stage.addEventListener(ev, e=>{e.preventDefault(); $('dropzone').classList.remove('over');}));
+stage.addEventListener('drop', e=> loadFile(e.dataTransfer.files[0]));
+
+/* ---------- before / after ---------- */
+cv.addEventListener('pointerdown', ()=>{ showingOriginal=true; render(); });
+['pointerup','pointerleave'].forEach(ev=> cv.addEventListener(ev, ()=>{ showingOriginal=false; render(); }));
+
+/* ---------- sample photo (synthetic golden-hour scene) ---------- */
+$('sample').addEventListener('click', ()=>{
+  const c = document.createElement('canvas'); c.width=1200; c.height=800;
+  const x = c.getContext('2d');
+  const sky = x.createLinearGradient(0,0,0,800);
+  sky.addColorStop(0,'#2e3a55'); sky.addColorStop(.45,'#c96f3a'); sky.addColorStop(.72,'#f2b04a'); sky.addColorStop(1,'#7a4a2a');
+  x.fillStyle=sky; x.fillRect(0,0,1200,800);
+  // sun with glow
+  const sun = x.createRadialGradient(600,500,10,600,500,220);
+  sun.addColorStop(0,'#fff6d8'); sun.addColorStop(.25,'#ffd469'); sun.addColorStop(1,'rgba(255,180,80,0)');
+  x.fillStyle=sun; x.fillRect(0,0,1200,800);
+  x.fillStyle='#ffedb8'; x.beginPath(); x.arc(600,500,60,0,7); x.fill();
+  // horizon + ground
+  x.fillStyle='#3d2b1c'; x.fillRect(0,560,1200,240);
+  const road = x.createLinearGradient(0,560,0,800);
+  road.addColorStop(0,'#5a4632'); road.addColorStop(1,'#241a10');
+  x.fillStyle=road; x.beginPath();
+  x.moveTo(440,560); x.lineTo(760,560); x.lineTo(1080,800); x.lineTo(120,800); x.closePath(); x.fill();
+  // road dashes
+  x.fillStyle='rgba(240,220,170,.7)';
+  for (let i=0;i<5;i++){ const y=590+i*45, w=8+i*7, h=14+i*8; x.fillRect(600-w/2,y,w,h); }
+  // retro car silhouette
+  x.fillStyle='#1c1310';
+  x.beginPath(); x.moveTo(330,640); x.quadraticCurveTo(360,600,430,595); x.quadraticCurveTo(480,560,560,562);
+  x.quadraticCurveTo(640,565,680,600); x.quadraticCurveTo(750,610,760,645); x.lineTo(755,665);
+  x.lineTo(320,665); x.closePath(); x.fill();
+  x.fillStyle='#0d0906';
+  x.beginPath(); x.arc(410,665,26,0,7); x.fill();
+  x.beginPath(); x.arc(660,665,26,0,7); x.fill();
+  x.fillStyle='rgba(255,190,90,.55)'; // window glint
+  x.beginPath(); x.moveTo(455,592); x.quadraticCurveTo(500,568,555,570); x.lineTo(570,596); x.closePath(); x.fill();
+  // palm-ish silhouettes
+  x.strokeStyle='#171008'; x.fillStyle='#171008';
+  [[150,470],[1050,440],[930,500]].forEach(([px,py])=>{
+    x.lineWidth=10; x.beginPath(); x.moveTo(px,565); x.quadraticCurveTo(px+14,520,px,py); x.stroke();
+    for (let a=0;a<6;a++){ const ang=-.4-a*.5;
+      x.beginPath(); x.moveTo(px,py);
+      x.quadraticCurveTo(px+Math.cos(ang)*70, py+Math.sin(ang)*40-24, px+Math.cos(ang)*120, py+Math.sin(ang)*55+10);
+      x.lineWidth=7; x.stroke(); }
+  });
+  // neon sign
+  x.strokeStyle='rgba(255,120,160,.9)'; x.lineWidth=4;
+  x.strokeRect(820,300,160,64);
+  x.fillStyle='rgba(255,180,205,.95)'; x.font='bold 34px Courier New'; x.fillText('MOTEL', 836,344);
+  img = c; showFrame();
+});
+
+/* ---------- download ---------- */
+$('dl').addEventListener('click', ()=>{
+  if (!img){ $('file').click(); return; }
+  const a = document.createElement('a');
+  a.download = 'rewind-film-' + Date.now() + '.png';
+  a.href = cv.toDataURL('image/png');
+  a.click();
+});
+
+syncUI();
+</script>
+</body>
+</html>
